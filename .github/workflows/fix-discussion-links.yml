@@ -1,0 +1,23 @@
+name: Fix Discussion Links
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-discussion-links.yml'
+      - '.github/scripts/fix_discussion_links.py'
+
+jobs:
+  fix-links:
+    runs-on: ubuntu-latest
+    permissions:
+      discussions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix broken links in Discussion #1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/fix_discussion_links.py
