@@ -301,3 +301,19 @@ A: GC-60 demonstrates that we can extend periodicity **without** enlarging the f
 wheel structure—a conceptually simpler tradeoff.
 
 ---
+🔬 Parallel Research
+Passive Segmented Sieve  GC-60
+An experimental sibling project exploring a different dimension of the GC-60 model.
+While M60_7 focuses on speed through orthogonal pre-filtering and AVX2 optimization,
+the Passive Segmented Sieve focuses on unlimited scalability through a fixed-size
+passive container and a self-feeding screening list that grows only as strictly necessary.
+Key properties:
+
+Fixed bitmask — reset and reused at each segment, never grows
+Screening list adds only primes in (√segment_N, √segment_N+1]
+Linear scaling validated to 9.8 billion — upper limits still under investigation
+Implementations in Python, C++ and Julia
+
+
+Both projects share the same GC-60 wheel geometry and explore complementary
+directions of the same structural model.
