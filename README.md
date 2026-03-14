@@ -301,6 +301,7 @@ A: GC-60 demonstrates that we can extend periodicity **without** enlarging the f
 wheel structure—a conceptually simpler tradeoff.
 
 ---
+
 🔬 Parallel Research
 Passive Segmented Sieve  GC-60
 An experimental sibling project exploring a different dimension of the GC-60 model.
@@ -317,3 +318,4 @@ Implementations in Python, C++ and Julia
 
 Both projects share the same GC-60 wheel geometry and explore complementary
 directions of the same structural model.
+---
