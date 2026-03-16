@@ -21,7 +21,7 @@ lista_primi=[7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,
 #************************************************
 #*******          crea maschere          ********
 #************************************************
-dimensione_maschera=16385 # Dimensione maschera scrematura 
+dimensione_maschera=131072 # Dimensione maschera scrematura 
 #* Ogni sgmento di questa dimensione contiene 16 residui che coprono 60 numeri 
 
 sottolista_base = [1, 3, 7, 9, 13, 19, 21, 27,31, 33, 37, 39, 43, 49, 51, 57]
@@ -81,7 +81,7 @@ def ricerca_ciclo(p,riferimento):
 #*******           scrematura            ********
 #************************************************
 
-quanti_cicli=2
+quanti_cicli=5
 radice1=isqrt(dimensione_maschera*(quanti_cicli+1)*60)+1 # calcolo radice sul secondo segmento
 
 for cicli in range(quanti_cicli):
