@@ -245,10 +245,6 @@ Enable the following compiler options:
 - AVX2 instruction set (`/arch:AVX2`)
 - C++20 standard (required for `std::popcount` and `<bit>`)
 
-```bash
-# g++ / clang++
-g++ -std=c++20 -fopenmp -march=native -O3 -o sieve sieve_wheel_M60_conta.cpp
-```
 
 ### Julia
 
