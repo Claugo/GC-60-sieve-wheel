@@ -1,321 +1,305 @@
-# Segmented Wheel Sieve – Orthogonal Prefilter Extension (GC-60)
+# Passive Container Segmented Sieve  GC-60
+### Version V3.0.0
 
-## ✨ Overview
-
-This repository contains a **reference implementation** of a segmented wheel sieve
-based on the **GC-60 structural model** — a novel approach to wheel factorization
-that extends periodicity **orthogonally** without structural enlargement.
-
-### Why This Matters
-
-Most wheel-based sieve implementations (mod 30, mod 210) scale periodicity by increasing
-the wheel size. This project demonstrates a **fundamentally different approach**:
-
-- **Fixed mod-60 wheel** (16 residues)
-- **Orthogonal pre-filtering** (e.g., p = 7) layered on top
-- **Constant 16-bit mask** per segment (no expansion)
-- **Preserved cache locality** despite extended periodicity
-
-**Result**: A structurally elegant proof-of-concept competitive with mature sieves like
-[primesieve](https://github.com/kimwalisch/primecount).
+This version contains the foundational work of the sieve wheel M60_7 project. Written in English, it documents the stages of evolution with full transparency. Through continued experimentation, and with the support of AI tools, I arrived at the V3.0.0 implementation, which realizes the GC-60 logic in an optimized form. The earlier experiments remain available for anyone who wishes to review them, including the evolution of the passive container concept. The GC-60 sieve wheel project now stands as a starting point for anyone interested in implementing and further optimizing this approach.
 
 ---
 
-## 📊 Quick Comparison
+## GC-60 Sieve Wheel: Conceptual and Architectural Diversity
 
-| Implementation | Wheel | Modulo | Segments | Performance (10⁹) |
-|---|---|---|---|---|
-| **This (GC-60)** | Orthogonal ext. | 60 | ✅ Segmented | ~211 ms |
-| primesieve | Hierarchical | 30, 210 | ✅ Multi-level | ~100-150 ms |
-| gkonovalov/algorithms | Simple | 2,3 | ❌ Array-based | ~500+ ms |
-| Python scipy | Sundaram | N/A | ❌ Single-pass | ~10-15 sec |
+The **Passive Container Segmented Sieve GC-60** project was conceived as a perspective differentiated from traditional sieves, with the intent of leveraging **resource efficiency**, **data independence**, and **structural stability**.
 
-**Note**: This project = Proof-of-concept reference. Not micro-optimized like primesieve.
+The four fundamental differences are described below, formalized mathematically where relevant.
 
 ---
 
-## 🔬 The GC-60 Model
+## 1. Structural Translation: The Anchor at 10
 
-### Coordinate System
-```
-n = 60k + 10 + r
+The primary difference does not lie in the modulus $M=60$, but in its **reference system**.
 
-where r ∈ {1, 3, 7, 9, 13, 19, 21, 27, 31, 33, 37, 39, 43, 49, 51, 57}
-```
+### Traditional Approach (Standard Wheel)
 
-- **60k + 10** = base coordinate
-- **16 residues** = coprime to 2, 3, 5
-- **Structural invariant**: Each candidate is exactly 1 bit in a 16-bit mask
+The wheel is centered at the origin $0$. Candidates are generated as:
 
-### Orthogonal Pre-filtering (p = 7)
-
-Instead of expanding to mod(60×7) = mod 420, we layer p=7 filtering orthogonally:
-
-```cpp
-// 7 initial mask patterns (SOTTOLISTE array)
-// Each pattern represents 60/gcd(60,7) = cycle of 60 positions
-// Pre-filter eliminates multiples of 7 without enlarging word size
+```math
+n = 60k + r, \quad k \ge 0, \quad r \in R
 ```
 
-**Innovation**: Separates concerns → modular extensibility to p ∈ {11, 13, ...}
+Where $R$ is the set of residues coprime with $60$:
+
+```math
+R = \{1, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59\}
+```
+
+The periodicity is mathematically sound but abstract with respect to the decimal system.
+
+### GC-60 Approach (Translated Wheel)
+
+The structure is anchored at $10$. Candidates are generated as:
+
+```math
+n = 60k + 10 + r, \quad k \ge 0, \quad r \in R'
+```
+
+Where $R'$ is the set of translated offsets:
+
+```math
+R' = \{1, 3, 7, 9, 13, 19, 21, 27, 31, 33, 37, 39, 43, 49, 51, 57\}
+```
+
+**Significance:** The translation $\rho(n) = (n - 10) \pmod{60}$ does not change the set of primes, but stabilizes the correspondence between memory index and residue relative to a decimal base. It transforms the wheel from a computational tool into a **fixed coordinate grid**.
 
 ---
 
-## 🚀 Performance
+## 2. Elimination Dynamics: Propagation vs Interrogation
 
-**Test Machine**: AMD Ryzen 7 4800U (Single-threaded)  
-**Compiler**: Microsoft Visual Studio 2022  
-**Timing**: Sieve elimination phase only (excluding I/O, validation)
+The way composite numbers are identified defines the philosophy of the algorithm.
 
+### Traditional Approach (Active Propagation)
+
+The algorithm actively propagates divisibility information. For each prime $p$, it marks multiples along a linear arithmetic progression:
+
+```math
+m = p^2 + 2kp, \quad k \ge 0
 ```
-Range          Time        Primes Found
-───────────────────────────────────────
-1×10⁹         211 ms       50,847,534
-1×10¹⁰        (see video)   455,052,511
+
+- **Logic:** "For each prime $p$, find its multiples and cross them off."
+- **State:** Segments are coupled; the position of the next multiple is propagated from segment $i$ to segment $i+1$.
+
+### GC-60 Approach (Passive Interrogation)
+
+The algorithm treats the segment as a **passive structure** that receives exclusion patterns. Elimination occurs through internal composition within the structured domain $A$:
+
+```math
+n = a \cdot b, \quad a, b \in A, \quad a \le b
 ```
 
-✅ **Correctness**: Validated via structural checks + Miller–Rabin (100 random tests)
+- **Logic:** "I have a fixed structure (the container). I apply logical masks to determine which positions are hit by the divisors."
+- **State:** **Radical Independence.** Each segment $S_i$ is computed as:
+
+```math
+S_i = \text{Sieve}(Range_i,\ \sqrt{Max})
+```
+
+Without depending on the final state of $S_{i-1}$. The cycle function `ricerca_ciclo(p, riferimento)` is recomputed for each segment, trading CPU time for logical isolation.
 
 ---
 
-## 🏗️ Architecture
+## 3. Memory Management: Segmentation State vs Divisor List
 
-### Three Phases
+### Traditional Approach
 
-1. **Initialization (Fast)**
-   - Memcpy-doubling technique for O(log N) setup
-   - Exploits periodicity of p=7 for cache efficiency
+To save CPU cycles, classical segmented sieves globally store the **propagation state** for each sieving prime up to $\sqrt{N}$ (e.g. position of the next multiple to mark).
 
-2. **Sieving (Main Loop)**
-   - Segmented elimination (32 KB segments = L1 cache)
-   - Per-prime "hit points" pre-computed
-   - Direct bit-AND operations
+- **Memory cost:** $O(\pi(\sqrt{N}))$ for the prime list **+** $O(\pi(\sqrt{N}))$ for the global state (offsets/maps).
+- **Limitation:** For $\sqrt{N} \approx 3\ \text{billion}$, the RAM required to store maps or complex states for each prime can become prohibitive (tens or hundreds of GB).
 
-3. **Validation**
-   - Density check
-   - Structural verification
-   - Probabilistic primality tests
+### GC-60 Approach
 
-### Key Data Structures
+The cycle map (`ricerca_ciclo`) is recomputed for each segment, eliminating the need to store any global propagation state.
 
-```cpp
-struct ColpoResiduo {          // Hit pattern for prime p
-    u64 prossima_L;            // Next segment to hit
-    uint16_t maschera_NOT;     // Bit mask (negated)
-};
+- **Memory cost:** $O(\pi(\sqrt{N}))$ for the prime list **+** $O(1)$ for the segmentation state (local buffer).
+- **Advantage:** The operational memory per segment is **constant** and independent of $N$. With no global maps to maintain in RAM, the bottleneck shifts from memory capacity to computing power.
+- **In practice:**
 
-struct PrimoAtleta {           // Sieving prime metadata
-    u64 p;                     // Prime value
-    std::vector<ColpoResiduo> colpi;  // All hit positions
-};
+```math
+\text{RAM}_{\text{operational}} \approx \text{SegmentSize} + \text{ThreadOverhead}
 ```
+
+Independent of the complexity of the divisor maps.
+
+### Real Comparison
+
+Both approaches must store the sieving prime list ($O(\pi(\sqrt{N}))$), but GC-60 eliminates the additional overhead tied to **preserving propagation state** (global maps/offsets), allowing operation at theoretical scales ($N \to 10^{19}$) with a minimal active memory footprint — accepting a deliberate trade-off: **CPU time in exchange for RAM space**.
 
 ---
 
-## 💻 Build & Run
+## 4. Structural Density and Bitmasking
 
-### Requirements
-- Windows 11 / Linux / macOS
-- C++11 or later
-- AVX2 capable CPU (recommended for best performance)
+### Structural Compression
 
-### Build with Visual Studio (Recommended)
+The system compresses 60 natural numbers into a 16-bit word (`uint16_t`). The information density $\rho$ is:
 
-1. Open `sieve_wheel_M60_7.sln` in **Visual Studio 2022**
-2. Select **Release** configuration
-3. Select **x64** platform
-4. Ensure **Instruction Set** is set to **AVX2 (/arch:AVX2)**
-   - Right-click project → Properties
-   - C/C++ → Code Generation → Enhanced Instruction Set
-   - Select `/arch:AVX2`
-5. Build → Executable ready in `Release/x64` folder
+```math
+\rho = \frac{16\ \text{bit}}{60\ \text{numbers}} \approx 0.266\ \text{bit per number}
+```
 
-### Build with GCC/Clang (Linux/macOS)
+### Comparison with Standard Methods
+
+| Method | Bits per number |
+|:---|:---|
+| Classical bit-sieve | 1 bit |
+| **GC-60** | **~0.266 bit** |
+| **Density gain** | **~3.75×** |
+
+The elimination operation is an atomic logical instruction on the CPU:
+
+```math
+\text{ptr}[L] \leftarrow \text{ptr}[L]\ \&\ \sim\text{mask}
+```
+
+This allows processing 16 candidates simultaneously at processor clock speed.
+
+---
+
+## Comparative Summary
+
+| Feature | Industrial Sieves (e.g. primesieve) | GC-60 Sieve Wheel |
+|:---|:---|:---|
+| **Primary Goal** | Speed (Throughput) | Memory Efficiency and Logic |
+| **Generator Equation** | $n = 60k + r$ | $n = 60k + 10 + r$ |
+| **Segment Management** | Propagated state (Coupled) | Recomputed state (Independent) |
+| **RAM Complexity** | $O(\pi(\sqrt{N}))$ (Growing) | $O(1)$ (Constant) |
+| **Philosophy** | Active hunt for multiples | Interrogation of passive containers |
+| **Output** | Immediate result | Persistent and regenerable archive |
+
+---
+
+## Background and History
+
+This project started as a computational experiment on prime number distribution, with an initial Python prototype to validate the core idea. The evolution followed three stages:
+
+- **Python** — conceptual prototype, logic validation
+- **sieve_wheel_M60_7** — first performant C++ implementation, used as reference benchmark
+- **V3.0.0** — optimized rewrite in C++ and Julia, with AI-assisted low-level optimization (Claude and Gemini)
+
+The use of AI tools is stated transparently: the algorithmic intuitions and architectural decisions remain the author's, while AI accelerated the implementation of critical low-level optimizations.
+
+---
+
+## The Core Concept: Passive Container
+
+The defining characteristic of this sieve is what it does **not** do.
+
+In a classical sieve, the algorithm actively interrogates each candidate: *"is this number a multiple of p?"*
+
+In this implementation, the segment is a **passive container** — it receives exclusion patterns without ever being interrogated. For each sieving prime `p`, the algorithm pre-computes a fixed pattern of 16 residues (the mod-60 multiples of `p`) and **blindly translates** that pattern onto the segment. No individual candidate is ever checked. The container simply accumulates marks from all primes, and what remains unmarked at the end is prime.
+
+**Concrete example with p = 7:**
+
+All numbers follow the form $n = 60k + 10 + r$ where $r \in R'$.
+For $p = 7$, the multiples land on a fixed subset of these 16 residue positions. This pattern repeats identically on every segment with period $60 / \gcd(60, 7) = 60$. The algorithm computes this pattern once and translates it across the entire segment in a single pass, with no conditional logic per candidate.
+
+---
+
+## Benchmark Results
+
+### C++ — 16 threads, Ryzen 7 4800MHz
+
+| Range | Cycles | Primes to √n | Total primes | Time |
+|:---|:---|:---|:---|:---|
+| 10,003,415,040 | 1,272 | 9,590 | 455,268,381 | 1.12 s |
+| 100,057,743,360 | 12,723 | 27,297 | 4,120,402,444 | 12.51 s |
+| 1,000,616,755,200 | 127,235 | 78,520 | 37,630,301,699 | 177.75 s |
+
+### Julia — 8 threads, same hardware
+
+| Range | Cycles | Primes to √n | Total primes | Time |
+|:---|:---|:---|:---|:---|
+| 10,003,415,041 | 1,272 | 9,590 | 455,268,381 | 7.63 s |
+| 100,057,743,349 | 12,723 | 27,297 | 4,120,402,444 | 115.28 s |
+| 1,000 billion | 127,235 | — | — | aborted |
+
+> The 1 trillion test in Julia was aborted — execution time was out of scale compared to C++. Julia's scaling degrades significantly at very large ranges with 8 threads, likely due to memory management and JIT overhead on data structures of this size.
+
+### Scalability (C++)
+
+```
+10  billion  →    1.12 s
+100 billion  →   12.51 s   (11.2× — near linear)
+1   trillion →  177.75 s   (14.2× — expected degradation)
+```
+
+The degradation at 1 trillion is explained by the growth of the sieving prime list:
+
+```math
+\pi(\sqrt{10^{10}}) \approx 9{,}590 \quad \rightarrow \quad \pi(\sqrt{10^{12}}) \approx 78{,}520
+```
+
+Each segment performs approximately $8\times$ more sieving operations.
+
+---
+
+## Architectural Comparison: V3.0.0 vs sieve_wheel_M60_7 — 1 trillion
+
+| Implementation | Time | Memory (sieving primes) |
+|:---|:---|:---|
+| sieve_wheel_M60_7 | 456.5 s | ~37 billion elements in RAM |
+| **V3.0.0 C++** | **177.8 s** | **~78,000 elements in RAM** |
+| **Speedup** | **2.6×** | **~500,000×** |
+
+**Structural difference:**
+- **M60_7** — parallelizes over primes within each segment (shared mask contention)
+- **V3.0.0** — assigns full independent segments to each thread (private mask, zero contention)
+
+---
+
+## Build Instructions
+
+### C++
+
+Recommended: Visual Studio, Console project, Release x64.
+
+Enable the following compiler options:
+- OpenMP support (`/openmp`)
+- AVX2 instruction set (`/arch:AVX2`)
+- C++20 standard (required for `std::popcount` and `<bit>`)
 
 ```bash
-g++ -std=c++17 -O3 -march=native prg/sieve_wheel_M60_7.cpp -o sieve
+# g++ / clang++
+g++ -std=c++20 -fopenmp -march=native -O3 -o sieve sieve_wheel_M60_conta.cpp
 ```
 
-### Run
+### Julia
 
 ```bash
-# Windows
-sieve_wheel_M60_7.exe 1000000000
-
-# Linux/macOS
-./sieve 1000000000
-```
-
-### Output Example
-```
---- Sieve Wheel M60 ricerca su: 1,000,000,000 (Pre-filtro 7 Memcpy) ---
-Tempo eliminazione: 0.211 secondi
-
---- AVVIO CONTROLLI STRUTTURALI ---
-1. Test Densita': 50847534 candidati rimasti.
-2. Campione Primi identificati:
-   > 1013
-   > 1019
-   > ...
-3. Test Divisibilita': OK
-4. Risultato Miller-Rabin: 100/100 OK.
+julia --threads=8 sieve_wheel_M60.jl
 ```
 
 ---
 
-## 🔍 Code Walkthrough
+## Collaboration
 
-### 1. Residue Mapping
-```cpp
-const int RESIDUI[] = { 1, 3, 7, 9, 13, 19, 21, 27, 31, 33, 37, 39, 43, 49, 51, 57 };
-int residuo_to_bit[60];  // Maps residue → bit position
+This is an experimental project with a solid and verified base. Contributions are welcome, particularly around:
 
-for (int i = 0; i < 16; i++) 
-    residuo_to_bit[RESIDUI[i]] = i;
+- Further parallelization strategies
+- Memory layout optimizations
+- Validation against independent prime counting references
+- Port to other languages (Rust, Go)
+
+Open an issue on GitHub if you are interested in collaborating.
+
+---
+
+## Conclusion: The Value of the Passive Container
+
+The **GC-60 Sieve Wheel** project does not position itself as a replacement for optimized industrial libraries such as `primesieve`, nor does it aim to compete on raw execution speed. Classical algorithms benefit from decades of low-level optimizations (assembly, prefetching, vectorization) carried out by expert teams on specific hardware.
+
+The goal of this work is different: to demonstrate that the **Passive Container** concept represents a valid starting point for **rethinking the interpretation of the traditional wheel**.
+
+### 1. A Conceptual Alternative, not a Performance Claim
+
+While classical sieves treat the data structure as an active buffer to fill and propagate, the **GC-60 Sieve Wheel** proposes a static view:
+- The structure (the container) exists independently of the computation.
+- Divisibility information is **projected** onto the structure via logical masks.
+- Primality emerges as a **residual state** — what is not marked — rather than as the active result of a search.
+
+This divergence does not make the algorithm "better" in terms of throughput, but makes it **conceptually alternative**. It offers a search logic where segment independence and constant memory occupancy take priority over minimizing clock time.
+
+### 2. Sustainability and Scalability
+
+The practical value of this approach lies in its sustainability under different resource constraints:
+
+```math
+\text{RAM}_{\text{GC-60}} \approx O(1) \quad \text{vs} \quad \text{RAM}_{\text{traditional}} \approx O(\pi(\sqrt{N}))
 ```
 
-### 2. Orthogonal P=7 Pre-filter
-```cpp
-const int SOTTOLISTE[7][16] = {
-    {1, 3, 7, 9, 13, 19, 21, 27, 31, 33, 37, 0, 43, 49, 51, 57},  // p=7 class 0
-    {1, 3, 0, 9, 13, 19, 0, 27, 31, 33, 37, 39, 43, 0, 51, 57},   // p=7 class 1
-    // ... 7 patterns total
-};
-// 0 = eliminated by p=7, non-zero = included in that class
-```
+This characteristic allows operation at theoretical scales ($N \to 10^{19}$) with a minimal active memory footprint, making the **GC-60 Sieve Wheel** a genuine alternative for scenarios where memory is the primary bottleneck rather than computation speed.
 
-### 3. Fast Initialization
-```cpp
-// Memcpy doubling: O(log N) copies instead of O(N)
-u64 filled = 7;
-while (filled * 2 <= N_SOTTOLISTE) {
-    memcpy(ptr + filled, ptr, filled * sizeof(uint16_t));
-    filled *= 2;
-}
-```
+### 3. Future Perspective
 
-### 4. Segmented Elimination Loop
-```cpp
-for (u64 s_start = 0; s_start < N_SOTTOLISTE; s_start += SEG_SIZE) {
-    for (auto& pa : database) {
-        for (auto& colpo : pa.colpi) {
-            while (L < s_end) {
-                ptr[L] &= m;  // Mark composite
-                L += p;       // Jump to next multiple
-            }
-        }
-    }
-}
-```
+The **GC-60 Sieve Wheel** does not seek to break speed records, but to **expand the solution space**:
+- For **theoretical research**, it offers a model where structural periodicity (translation +10) can be studied as a fixed environment.
+- For **software engineering**, it demonstrates that persistent, independent archives can be built without relying on global computation state.
 
----
-
-## 📈 Potential Extensions
-
-This reference implementation can be extended with:
-
-### Short-term (Straightforward)
-- [ ] Prefilter extensions: p ∈ {11, 13, ...}
-- [ ] Cross-compilation support (CMake)
-- [ ] Benchmark suite vs primesieve
-
-### Medium-term (Moderate effort)
-- [ ] SIMD/AVX2 vectorization of sieve loop
-- [ ] Dual-level sieving (separate small/big primes)
-- [ ] Multi-threading with atomic segment coordination
-
-### Long-term (Research)
-- [ ] Investigate optimal orthogonal filter combinations
-- [ ] Cache hierarchy optimization (L1/L2/L3)
-- [ ] GPU acceleration for massive ranges
-
----
-
-## 🤝 Contributing
-
-This is a **reference implementation for research and educational purposes**.
-
-We welcome contributions in:
-
-1. **Performance Analysis**
-   - Profiling on different CPU architectures
-   - Comparison benchmarks vs other sieves
-   - Cache behavior measurement
-
-2. **Extensions**
-   - Implementing additional orthogonal filters
-   - SIMD optimizations
-   - Parallelization strategies
-
-3. **Documentation**
-   - Mathematical proofs of correctness
-   - Detailed algorithm walkthroughs
-   - Academic paper drafts
-
-**Please open an Issue first** to discuss larger changes.
-
----
-
-## 📚 Related Work
-
-- **[primesieve](https://github.com/kimwalisch/primecount)** – Production-grade, multi-level approach
-- **[Sieve of Eratosthenes (Wikipedia)](https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes)**
-- **[Wheel Factorization (cp-algorithms)](https://cp-algorithms.com/algebra/sieve-of-eratosthenes.html#sieve-of-eratosthenes-with-linear-time-complexity)**
-
----
-
-## 📄 License
-
-MIT License – See [LICENSE](LICENSE) file
-
-**Copyright (c) 2026 Claugo**
-
----
-
-## 🎓 Citation
-
-If you use this in research or publications, please cite:
-
-```bibtex
-@repository{claugo_gc60_sieve,
-  title = {Segmented Wheel Sieve with Orthogonal Prefilter Extension (GC-60)},
-  author = {Claugo},
-  year = {2026},
-  url = {https://github.com/Claugo/segmented-sieve-wheel-m60-7}
-}
-```
-
----
-
-## ❓ FAQ
-
-**Q: Is this faster than primesieve?**  
-A: No. Primesieve is micro-optimized over years. This is a *proof-of-concept* showing an
-alternative structural approach.
-
-**Q: Can I use this for production?**  
-A: Not recommended. Use primesieve for production. Use this for **research** and **learning**.
-
-**Q: Why GC-60 and not mod 210 like others?**  
-A: GC-60 demonstrates that we can extend periodicity **without** enlarging the fundamental
-wheel structure—a conceptually simpler tradeoff.
-
----
-
-🔬 Parallel Research
-Passive Segmented Sieve  GC-60
-An experimental sibling project exploring a different dimension of the GC-60 model.
-While M60_7 focuses on speed through orthogonal pre-filtering and AVX2 optimization,
-the Passive Segmented Sieve focuses on unlimited scalability through a fixed-size
-passive container and a self-feeding screening list that grows only as strictly necessary.
-Key properties:
-
-Fixed bitmask — reset and reused at each segment, never grows
-Screening list adds only primes in (√segment_N, √segment_N+1]
-Linear scaling validated to 9.8 billion — upper limits still under investigation
-Implementations in Python, C++ and Julia
-
-
-Both projects share the same GC-60 wheel geometry and explore complementary
-directions of the same structural model.
----
+The project is therefore proposed as a **complementary tool** in the ecosystem of computational number theory: not to replace existing tools, but to accompany them by offering a passive container logic that makes the structure of prime numbers readable through a different lens — one where efficiency is measured in architectural stability and resource savings, as well as in speed.
