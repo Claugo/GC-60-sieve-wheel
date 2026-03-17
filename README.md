@@ -1,9 +1,32 @@
 # Passive Container Segmented Sieve  GC-60
 ### Version V3.0.0
 
-This version contains the foundational work of the sieve wheel M60_7 project. Written in English, it documents the stages of evolution with full transparency. Through continued experimentation, and with the support of AI tools, I arrived at the V3.0.0 implementation, which realizes the GC-60 logic in an optimized form. The earlier experiments remain available for anyone who wishes to review them, including the evolution of the passive container concept. The GC-60 sieve wheel project now stands as a starting point for anyone interested in implementing and further optimizing this approach.
-
 ---
+## ⚠️ Note on segment size and bootstrap list
+
+The hardcoded prime list (`lista_primi`) serves as the bootstrap for marking
+composites in **segment 0**. This list must contain all primes up to the
+square root of the segment 0 upper bound:
+```
+radice_0 = sqrt(dimensione_maschera × 60) + 1
+```
+
+If the bootstrap list is too short, composites whose smallest prime factor
+lies above the list's last entry will not be marked in segment 0 — causing
+a **silent overcounting of primes**.
+
+If you change `dimensione_maschera`, update the bootstrap list accordingly:
+
+| `dimensione_maschera` | `radice_0` | Bootstrap must reach |
+|---|---|---|
+| 65.536 | 1.983 | 1.979 (296 primes) |
+| **131.072** | **2.805** | **2.803 (406 primes — current)** |
+| 262.144 | 3.966 | 3.947 (545 primes) |
+| 524.288 | 5.609 | 5.591 (735 primes) |
+| 1.048.576 | 7.932 | 7.927 (998 primes) |
+
+The bootstrap list can be generated with any prime sieve or verified with
+`sympy.isprime`. The formula is deterministic — no guesswork required.
 
 ## GC-60 Sieve Wheel: Conceptual and Architectural Diversity
 
