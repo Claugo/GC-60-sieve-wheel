@@ -12,7 +12,7 @@ radice_0 = sqrt(dimensione_maschera × 60) + 1
 ```
 
 If the bootstrap list is too short, composites whose smallest prime factor
-lies above the list's last entry will not be marked in segment 0 — causing
+lies above the list's last entry will not be marked in segment 0 causing
 a **silent overcounting of primes**.
 
 If you change `dimensione_maschera`, update the bootstrap list accordingly:
