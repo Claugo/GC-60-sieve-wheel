@@ -26,7 +26,7 @@ If you change `dimensione_maschera`, update the bootstrap list accordingly:
 | 1.048.576 | 7.932 | 7.927 (998 primes) |
 
 The bootstrap list can be generated with any prime sieve or verified with
-`sympy.isprime`. The formula is deterministic — no guesswork required.
+`sympy.isprime`. The formula is deterministic no guesswork required.
 
 ## GC-60 Sieve Wheel: Conceptual and Architectural Diversity
 
