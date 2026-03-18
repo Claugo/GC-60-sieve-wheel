@@ -211,16 +211,16 @@ For $p = 7$, the multiples land on a fixed subset of these 16 residue positions.
 
 | Range | Cycles | Primes to √n | Total primes | Time |
 |:---|:---|:---|:---|:---|
-| 10,003,415,040 | 1,272 | 9,590 | 455,268,381 | 1.12 s |
-| 100,057,743,360 | 12,723 | 27,297 | 4,120,402,444 | 12.51 s |
-| 1,000,616,755,200 | 127,235 | 78,520 | 37,630,301,699 | 177.75 s |
+| 10,003,415,040 | 1,272 | 9,590 | 455,200,781 | 1.12 s |
+| 100,057,743,360 | 12,723 | 27,297 | 4,120,334,844 | 12.51 s |
+| 1,000,616,755,200 | 127,235 | 78,520 | 37,630,234,099 | 177.75 s |
 
 ### Julia — 8 threads, same hardware
 
 | Range | Cycles | Primes to √n | Total primes | Time |
 |:---|:---|:---|:---|:---|
-| 10,003,415,041 | 1,272 | 9,590 | 455,268,381 | 7.63 s |
-| 100,057,743,349 | 12,723 | 27,297 | 4,120,402,444 | 115.28 s |
+| 10,003,415,041 | 1,272 | 9,590 | 455,200,781 | 7.63 s |
+| 100,057,743,349 | 12,723 | 27,297 | 4,120,334,844 | 115.28 s |
 | 1,000 billion | 127,235 | — | — | aborted |
 
 > The 1 trillion test in Julia was aborted — execution time was out of scale compared to C++. Julia's scaling degrades significantly at very large ranges with 8 threads, likely due to memory management and JIT overhead on data structures of this size.
