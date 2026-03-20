@@ -8,7 +8,7 @@
 
 The standard GC-60 sieve counts all primes up to N, storing only the sieving primes up to √N in memory. This is efficient for contiguous ranges starting from 2, but it implies a hard architectural limit: the target N must fit in a 64-bit integer (`uint64_t`), capping the reachable range at approximately 1.8 × 10¹⁹.
 
-This folder documents an extension of the GC-60 concept that decouples **where** you sieve from **how far** you sieve. Instead of counting all primes from 2 to N, the algorithm targets an arbitrary window [A, A + L] positioned anywhere in the number line — including far beyond 10¹⁹.
+This folder documents an extension of the GC-60 concept that decouples **where** you sieve from **how far** you sieve. Instead of counting all primes from 2 to N, the algorithm targets an arbitrary window [A, A + L] positioned anywhere in the number line, including far beyond 10¹⁹.
 
 The key insight is that the passive container model naturally supports this: a segment does not need to know its absolute position to receive exclusion patterns. It only needs to know which divisors reach it.
 
@@ -18,7 +18,7 @@ The key insight is that the passive container model naturally supports this: a s
 
 In a classical segmented sieve, reaching a window at position A requires propagating the state of every sieving prime from segment 0 all the way to the segment containing A. This is computationally and structurally expensive.
 
-In the GC-60 model, each segment is **stateless and independent**. The cycle function `ricerca_ciclo(p, riferimento)` computes the entry point of any prime `p` into any segment directly from its reference offset — without needing the result of any previous segment. This property makes arbitrary window placement essentially free in terms of architectural complexity.
+In the GC-60 model, each segment is **stateless and independent**. The cycle function `ricerca_ciclo(p, riferimento)` computes the entry point of any prime `p` into any segment directly from its reference offset, without needing the result of any previous segment. This property makes arbitrary window placement essentially free in terms of architectural complexity.
 
 The algorithm does not "travel" to position A. It simply asks:
 
@@ -48,7 +48,7 @@ Two distinct categories emerge from this phase:
 |**Stored primes** (≤ √√(A+L))|Bootstrap primers, kept in RAM throughout|Drive the GC-60 sieve segments|
 |**Interrogated primes** (≤ √(A+L))|Found during sieving, not all kept in RAM simultaneously|Tested once for usefulness, then released|
 
-For a window at 10²⁵, the stored primes reach ~10⁶ (~78,000 primes), while the interrogated primes reach ~3.16 × 10¹² (~108 billion primes — never all in RAM at once).
+For a window at 10²⁵, the stored primes reach ~10⁶ (~78,000 primes), while the interrogated primes reach ~3.16 × 10¹² (~108 billion primes, never all in RAM at once).
 
 ### Phase 2 — Passive Window Sieve
 
@@ -70,7 +70,7 @@ Positions still marked `true` after Phase 2, after a final check against small f
 
 ## Implementation Notes
 
-The implementation (`microprime_studio.cpp`) uses `__int128` (GCC/Clang) to represent A_TARGET, allowing targets up to ~3.4 × 10³⁸. All internal sieve arithmetic remains in `long long` — only the window position and the divisibility test use 128-bit arithmetic.
+The implementation (`microprime_studio.cpp`) uses `__int128` (GCC/Clang) to represent A_TARGET, allowing targets up to ~3.4 × 10³⁸. All internal sieve arithmetic remains in `long long`, only the window position and the divisibility test use 128-bit arithmetic.
 
 **Compilation (GCC / Code::Blocks with MinGW):**
 
@@ -84,7 +84,7 @@ g++ -O3 -std=c++20 -fopenmp -o microprime_studio microprime_studio.cpp
 
 ## Benchmark Results
 
-All runs use a fixed window of **10,000,000** numbers. Hardware: Ryzen 7, 16 threads (OpenMP). All results verified against `nextprime` sequence — no errors detected across all 7 runs.
+All runs use a fixed window of **10,000,000** numbers. Hardware: Ryzen 7, 16 threads (OpenMP). All results verified against `nextprime` sequence, no errors detected across all 7 runs.
 
 |Target|Cycles GC-60|Useful divisors|Primes found|Phase 1 (s)|Phase 2 (s)|Total (s)|
 |---|---|---|---|---|---|---|
@@ -98,11 +98,11 @@ All runs use a fixed window of **10,000,000** numbers. Hardware: Ryzen 7, 16 thr
 
 ### Key observations
 
-**Linear scaling.** Phase 1 time scales by approximately ×10 per order of magnitude in the target — exactly matching the ×10 growth in GC-60 cycles. No degradation, no unexpected bottlenecks.
+**Linear scaling.** Phase 1 time scales by approximately ×10 per order of magnitude in the target, exactly matching the ×10 growth in GC-60 cycles. No degradation, no unexpected bottlenecks.
 
 **Constant Phase 2.** The passive window sieve runs in ~0.3–0.5 seconds regardless of target magnitude. The window array (~10 MB) fits entirely in L3 cache; its cost is independent of where it sits on the number line.
 
-**Decreasing prime density.** Primes found per window decrease from 206,889 at 10²¹ to 161,025 at 10²⁷ — consistent with the prime number theorem (density ~1/ln N).
+**Decreasing prime density.** Primes found per window decrease from 206,889 at 10²¹ to 161,025 at 10²⁷,  consistent with the prime number theorem (density ~1/ln N).
 
 **No overflow.** All 7 runs completed without arithmetic errors. `__int128` provides headroom to ~3.4 × 10³⁸.
 
@@ -164,22 +164,25 @@ OUTPUT: sopravvissuti.txt
 
 ## Files in this folder
 
-|File|Description|
-|---|---|
-|`microprime_studio.cpp`|Main implementation — C++20, OpenMP, `__int128`|
-|`README.md`|This document|
-|`LICENSE`|
+| File                    | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `microprime_studio.cpp` | Main implementation  C++20, OpenMP, `__int128` |
+| `README.md`             | This document                                  |
+| `LICENSE`               |                                                |
+
 ---
 
 ## Relationship to the main GC-60 sieve
 
-The window exploration mode is a **targeted application** of the same passive container principle, not a separate algorithm. The GC-60 segments in Phase 1 are structurally identical to those in the main sieve — the only difference is what happens to the primes they produce: instead of being counted, they are tested for relevance to the window and either archived or discarded.
+The window exploration mode is a **targeted application** of the same passive container principle, not a separate algorithm. The GC-60 segments in Phase 1 are structurally identical to those in the main sieve, the only difference is what happens to the primes they produce: instead of being counted, they are tested for relevance to the window and either archived or discarded.
 
 The main sieve counts. This extension explores.
 
-## Stato sperimentale e configurazione manuale
+---
 
-`microprime_studio.cpp`Attualmente è in **fase sperimentale** . Esplorare diverse finestre e grandezze richiede la modifica manuale di due costanti direttamente nel codice sorgente:
+## Experimental Status and Manual Configuration
+
+`microprime_studio.cpp` is currently in **experimental form**. Exploring different windows and magnitudes requires manual editing of two constants directly in the source code:
 
 cpp
 
@@ -192,8 +195,8 @@ const i128 A_TARGET   = (i128)10000000000000000000ULL * 100000000ULL;
 const i128 L_FINESTRA = 10000000;
 ```
 
-`A_TARGET`definisce la posizione iniziale della finestra. Poiché i valori superiori a ~1,8 × 10¹⁹ superano il limite degli interi a 64 bit, il target deve essere costruito come un prodotto di `__int128`letterali. `L_FINESTRA`può essere impostato liberamente; 10.000.000 è il valore utilizzato in tutti i benchmark sopra riportati. Dopo la modifica, ricompilare ed eseguire.
+`A_TARGET` defines the starting position of the window. Because values above ~1.8 × 10¹⁹ exceed the 64-bit integer limit, the target must be constructed as a product of `__int128` literals. `L_FINESTRA` can be set freely; 10,000,000 is the value used in all benchmark runs above. After editing, recompile and run.
 
-L'utilizzo di **Code::Blocks con MinGW (GCC)** è stato necessario perché `__int128`è un'estensione GCC/Clang non supportata da MSVC (Visual Studio). Impostazioni consigliate: flag del compilatore `-O3 -fopenmp`, flag del linker `-fopenmp`, standard C++20, destinazione di compilazione **Release** (la modalità di debug disabilita `-O3`e produce tempi di esecuzione circa 30 volte più lenti).
+The use of **Code::Blocks with MinGW (GCC)** was necessary because `__int128` is a GCC/Clang extension not supported by MSVC (Visual Studio). Recommended settings: compiler flags `-O3 -fopenmp`, linker flag `-fopenmp`, standard C++20, build target **Release** (Debug mode disables `-O3` and produces runtimes ~30× slower).
 
-La trasparenza di questa documentazione è un invito alla collaborazione, per ampliare e migliorare le capacità di esplorazione di questo strumento. Contributi ed esperimenti su diverse posizioni e dimensioni della finestra sono benvenuti.
+The transparency of this documentation is an invitation to collaborate — to extend and improve the exploration capability of this tool. Contributions and experiments on different window positions and magnitudes are welcome.
