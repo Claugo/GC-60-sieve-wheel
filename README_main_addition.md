@@ -18,4 +18,4 @@ The `window_exploration` folder documents this extension:
 > primesieve and similar tools are limited to values below ~1.8 × 10¹⁹.
 > All runs in the window exploration table exceed that limit.
 
-→ **[See window_exploration/README.md](window_exploration/README.md)**
+→ **[See window_exploration/README.md](Window_Exploration/README.md)**
